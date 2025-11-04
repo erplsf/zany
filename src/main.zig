@@ -78,6 +78,9 @@ fn lex(allocator: Allocator, chars: []const u8) ![]Token {
                     else => {},
                 }
             }
+            if (proc(word, identifier_start, i)) |token| {
+                try tokens.append(allocator, token);
+            }
         }
     }
     return try tokens.toOwnedSlice(allocator);
