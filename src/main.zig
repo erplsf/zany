@@ -14,7 +14,7 @@ const Keywords = enum {
     @"return",
 };
 
-const Token = union(enum) { Semicolon, ParenOpen, ParenClose, Keyword: Keywords, BraceOpen, BraceClose, Identifier: []const u8 };
+const Token = union(enum) { Semicolon, ParenOpen, ParenClose, Keyword: Keywords, BraceOpen, BraceClose, Identifier: []const u8, Number: []const u8 };
 
 inline fn proc(word: []const u8, start: usize, end: usize) ?Token {
     const identifier_len: usize = end - start;
@@ -23,7 +23,9 @@ inline fn proc(word: []const u8, start: usize, end: usize) ?Token {
         if (std.meta.stringToEnum(Keywords, identifier)) |keyword| {
             return .{ .Keyword = keyword };
         } else {
-            return .{ .Identifier = identifier };
+            if (std.mem.findAny(u8, identifier, "0123456789")) |_| {
+                return .{ .Number = identifier };
+            } else return .{ .Identifier = identifier };
         }
     } else return null;
 }
@@ -108,5 +110,13 @@ test "more complex lexing" {
         try std.testing.expectEqual(3, result.len);
         try std.testing.expectEqualStrings("main", result[0].Identifier);
         try std.testing.expectEqualSlices(Token, &.{ .ParenOpen, .ParenClose }, result[1..]);
+    }
+    {
+        const result = try lex(allocator, "return 42;");
+        defer allocator.free(result);
+        try std.testing.expectEqual(3, result.len);
+        try std.testing.expectEqual(Token{ .Keyword = .@"return" }, result[0]);
+        try std.testing.expectEqualStrings("42", result[1].Number);
+        try std.testing.expectEqual(.Semicolon, result[2]);
     }
 }
