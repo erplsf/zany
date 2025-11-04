@@ -8,7 +8,13 @@ pub fn main() !void {
     // try lex(allocator.allocator(), "");
 }
 
-const Token = union(enum) { Semicolon, ParenOpen, ParenClose };
+const Keywords = enum {
+    @"fn",
+    @"unsigned",
+    @"return",
+};
+
+const Token = union(enum) { Semicolon, ParenOpen, ParenClose, Keyword: Keywords, BraceOpen, BraceClose };
 
 fn lex(allocator: Allocator, chars: []const u8) ![]Token {
     var tokens: std.ArrayList(Token) = .empty;
@@ -29,8 +35,12 @@ fn lex(allocator: Allocator, chars: []const u8) ![]Token {
 test "basic lexing" {
     const allocator = std.testing.allocator;
     try std.testing.expectEqualSlices(Token, &.{}, try lex(allocator, ""));
-    try std.testing.expectEqualSlices(Token, &.{}, try lex(allocator, "\n\n\n"));
+    try std.testing.expectEqualSlices(Token, &.{}, try lex(allocator, "\n  \n"));
     const result = try lex(allocator, ";");
     try std.testing.expectEqualSlices(Token, &.{Token.Semicolon}, result);
     allocator.free(result);
+}
+
+test "more complex lexing" {
+
 }
