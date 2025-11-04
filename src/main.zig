@@ -10,7 +10,7 @@ pub fn main() !void {
 
 const Keywords = enum {
     @"fn",
-    @"unsigned",
+    unsigned,
     @"return",
 };
 
@@ -21,11 +21,14 @@ fn lex(allocator: Allocator, chars: []const u8) ![]Token {
     var lines_it = std.mem.splitScalar(u8, chars, '\n');
     while (lines_it.next()) |line| {
         if (line.len == 0) continue;
-        var words_it = std.mem.splitAny(u8, line, " ");
+        var words_it = std.mem.splitScalar(u8, line, ' ');
         while (words_it.next()) |word| {
             if (word.len == 0) continue;
-            if (std.mem.eql(u8, word, ";")) {
-                try tokens.append(allocator, Token.Semicolon);
+            var i: usize = 0;
+            while (i < word.len) : (i += 1) {
+                if (word[i] == ';') {
+                    try tokens.append(allocator, Token.Semicolon);
+                }
             }
         }
     }
@@ -42,5 +45,8 @@ test "basic lexing" {
 }
 
 test "more complex lexing" {
-
+    const allocator = std.testing.allocator;
+    const result = try lex(allocator, ";;;");
+    try std.testing.expectEqualSlices(Token, &.{ Token.Semicolon, Token.Semicolon, Token.Semicolon }, result);
+    allocator.free(result);
 }
