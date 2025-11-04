@@ -120,3 +120,20 @@ test "more complex lexing" {
         try std.testing.expectEqual(.Semicolon, result[2]);
     }
 }
+
+test "lex the whole program" {
+    const allocator = std.testing.allocator;
+    const program =
+        \\fn main() unsigned {
+        \\  return 42;
+        \\}
+    ;
+    const result = try lex(allocator, program);
+    defer allocator.free(result);
+    try std.testing.expectEqual(10, result.len);
+    try std.testing.expectEqual(Token{ .Keyword = .@"fn" }, result[0]);
+    try std.testing.expectEqualStrings("main", result[1].Identifier);
+    try std.testing.expectEqualSlices(Token, &.{ .ParenOpen, .ParenClose, .{ .Keyword = .unsigned }, .BraceOpen, .{ .Keyword = .@"return" } }, result[2..7]);
+    try std.testing.expectEqualStrings("42", result[7].Number);
+    try std.testing.expectEqualSlices(Token, &.{ .Semicolon, .BraceClose }, result[8..]);
+}
