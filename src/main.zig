@@ -26,8 +26,13 @@ fn lex(allocator: Allocator, chars: []const u8) ![]Token {
             if (word.len == 0) continue;
             var i: usize = 0;
             while (i < word.len) : (i += 1) {
-                if (word[i] == ';') {
-                    try tokens.append(allocator, Token.Semicolon);
+                switch (word[i]) {
+                    ';' => try tokens.append(allocator, Token.Semicolon),
+                    '(' => try tokens.append(allocator, Token.ParenOpen),
+                    ')' => try tokens.append(allocator, Token.ParenClose),
+                    '{' => try tokens.append(allocator, Token.BraceOpen),
+                    '}' => try tokens.append(allocator, Token.BraceClose),
+                    else => {},
                 }
             }
         }
@@ -39,14 +44,14 @@ test "basic lexing" {
     const allocator = std.testing.allocator;
     try std.testing.expectEqualSlices(Token, &.{}, try lex(allocator, ""));
     try std.testing.expectEqualSlices(Token, &.{}, try lex(allocator, "\n  \n"));
-    const result = try lex(allocator, ";");
-    try std.testing.expectEqualSlices(Token, &.{Token.Semicolon}, result);
+    const result = try lex(allocator, ";}{()");
+    try std.testing.expectEqualSlices(Token, &.{ .Semicolon, .BraceClose, .BraceOpen, .ParenOpen, .ParenClose }, result);
     allocator.free(result);
 }
 
 test "more complex lexing" {
     const allocator = std.testing.allocator;
     const result = try lex(allocator, ";;;");
-    try std.testing.expectEqualSlices(Token, &.{ Token.Semicolon, Token.Semicolon, Token.Semicolon }, result);
+    try std.testing.expectEqualSlices(Token, &.{ .Semicolon, .Semicolon, .Semicolon }, result);
     allocator.free(result);
 }
