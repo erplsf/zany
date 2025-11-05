@@ -11,7 +11,6 @@ pub fn main() !void {
     _ = args.next(); // skip the binary name
     const maybe_filename = args.next();
     if (maybe_filename) |filename| {
-        // std.debug.print("fn: {s}\n", .{filename});
         const file = try std.fs.cwd().openFile(filename, .{});
         defer file.close();
         var read_buffer: [4096]u8 = undefined;
@@ -29,7 +28,6 @@ pub fn main() !void {
     } else {
         return error.NoFilenameProvided;
     }
-    // try lex(allocator.allocator(), "");
 }
 
 const Keywords = enum {
