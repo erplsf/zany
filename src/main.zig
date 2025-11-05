@@ -40,18 +40,25 @@ const Keywords = enum {
 
 const Token = union(enum) { Semicolon, ParenOpen, ParenClose, Keyword: Keywords, BraceOpen, BraceClose, Identifier: []const u8, Number: []const u8 };
 
-inline fn proc(word: []const u8, start: usize, end: usize) ?Token {
-    const identifier_len: usize = end - start;
+fn process_identifier(allocator: Allocator, tokens: *std.ArrayList(Token), word: []const u8, start: *usize, end: *usize) !void {
+    const identifier_len: usize = end.* - start.*;
+    var maybe_token: ?Token = null;
     if (identifier_len > 0) {
-        const identifier = word[start..end];
+        const identifier = word[start.*..end.*];
         if (std.meta.stringToEnum(Keywords, identifier)) |keyword| {
-            return .{ .Keyword = keyword };
+            maybe_token = .{ .Keyword = keyword };
         } else {
             if (std.mem.findAny(u8, identifier, "0123456789")) |_| {
-                return .{ .Number = identifier };
-            } else return .{ .Identifier = identifier };
+                maybe_token = .{ .Number = identifier };
+            } else {
+                maybe_token = .{ .Identifier = identifier };
+            }
         }
-    } else return null;
+    }
+    if (maybe_token) |token| {
+        try tokens.append(allocator, token);
+    }
+    start.* = end.* + 1;
 }
 
 fn lex(allocator: Allocator, chars: []const u8) ![]Token {
@@ -67,46 +74,29 @@ fn lex(allocator: Allocator, chars: []const u8) ![]Token {
             while (i < word.len) : (i += 1) {
                 switch (word[i]) {
                     ';' => {
-                        if (proc(word, identifier_start, i)) |token| {
-                            try tokens.append(allocator, token);
-                        }
+                        try process_identifier(allocator, &tokens, word, &identifier_start, &i);
                         try tokens.append(allocator, Token.Semicolon);
-                        identifier_start = i + 1;
                     },
                     '(' => {
-                        if (proc(word, identifier_start, i)) |token| {
-                            try tokens.append(allocator, token);
-                        }
+                        try process_identifier(allocator, &tokens, word, &identifier_start, &i);
                         try tokens.append(allocator, Token.ParenOpen);
-                        identifier_start = i + 1;
                     },
                     ')' => {
-                        if (proc(word, identifier_start, i)) |token| {
-                            try tokens.append(allocator, token);
-                        }
+                        try process_identifier(allocator, &tokens, word, &identifier_start, &i);
                         try tokens.append(allocator, Token.ParenClose);
-                        identifier_start = i + 1;
                     },
                     '{' => {
-                        if (proc(word, identifier_start, i)) |token| {
-                            try tokens.append(allocator, token);
-                        }
+                        try process_identifier(allocator, &tokens, word, &identifier_start, &i);
                         try tokens.append(allocator, Token.BraceOpen);
-                        identifier_start = i + 1;
                     },
                     '}' => {
-                        if (proc(word, identifier_start, i)) |token| {
-                            try tokens.append(allocator, token);
-                        }
+                        try process_identifier(allocator, &tokens, word, &identifier_start, &i);
                         try tokens.append(allocator, Token.BraceClose);
-                        identifier_start = i + 1;
                     },
                     else => {},
                 }
             }
-            if (proc(word, identifier_start, i)) |token| {
-                try tokens.append(allocator, token);
-            }
+            try process_identifier(allocator, &tokens, word, &identifier_start, &i);
         }
     }
     return try tokens.toOwnedSlice(allocator);
